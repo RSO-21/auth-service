@@ -11,6 +11,9 @@ class Settings:
     KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM")
     KEYCLOAK_CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID")
     KEYCLOAK_CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET")
+    
+    KEYCLOAK_ADMIN = os.getenv("KEYCLOAK_ADMIN")
+    KEYCLOAK_ADMIN_PASSWORD = os.getenv("KEYCLOAK_ADMIN_PASSWORD")
 
     @property
     def token_url(self):
@@ -24,5 +27,8 @@ class Settings:
     def jwks_url(self):
         return f"{self.KEYCLOAK_BASE_URL}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/certs"
 
+    @property
+    def admin_token_url(self):
+        return f"{self.KEYCLOAK_BASE_URL}/realms/master/protocol/openid-connect/token"
 
 SETTINGS = Settings()

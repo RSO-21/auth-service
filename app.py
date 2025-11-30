@@ -38,6 +38,23 @@ def login():
 
     return jsonify(vars(tokens))
 
+@app.post("/auth/signup")
+def signup():
+    data = request.json
+
+    username = data.get("username")
+    email = data.get("email")
+    password = data.get("password")
+
+    if not username or not email or not password:
+        return jsonify({"error": "Missing fields"}), 400
+
+    try:
+        kc.create_user(username, email, password)
+        return jsonify({"status": "ok"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 
 @app.get("/auth/me")
 def me():

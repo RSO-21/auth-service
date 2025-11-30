@@ -46,3 +46,43 @@ class KeycloakClient:
             email_verified=body.get("email_verified"),
             roles=roles,
         )
+        
+    def get_admin_token(self) -> str:
+        payload = {
+            "grant_type": "password",
+            "client_id": "admin-cli",
+            "username": SETTINGS.KEYCLOAK_ADMIN,
+            "password": SETTINGS.KEYCLOAK_ADMIN_PASSWORD,
+        }
+        r = requests.post(SETTINGS.admin_token_url, data=payload)
+        
+        r.raise_for_status()
+        return r.json()["access_token"]
+    
+    def create_user(self, username: str, email: str, password: str):
+        token = self.get_admin_token()
+
+        headers = {"Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"}
+
+        payload = {
+            "username": username,
+            "email": email,
+            "enabled": True,
+            "emailVerified": False,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": password,
+                    "temporary": False
+                }
+            ]
+        }
+
+        url = f"{SETTINGS.KEYCLOAK_BASE_URL}/admin/realms/{SETTINGS.KEYCLOAK_REALM}/users"
+        r = requests.post(url, headers=headers, json=payload)
+
+        if r.status_code not in (200, 201):
+            raise Exception(f"Error creating user: {r.text}")
+
+        return True
