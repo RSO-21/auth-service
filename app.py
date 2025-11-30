@@ -1,17 +1,15 @@
-from flask import Flask, request, jsonify
+from flask import Flask, make_response, request, jsonify
 from config import SETTINGS
 from keycloak_client import KeycloakClient
 from models import LoginRequest
-from security import extract_bearer_token, decode_access_token
+from security import extract_bearer_token, decode_access_token, set_token_cookies
 from flask_cors import CORS
 
 app = Flask(__name__)
 kc = KeycloakClient()
 
 
-CORS(app, resources={r"/*": {"origins": "*"}})
-
-
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 @app.route("/health")
 def health():
@@ -36,7 +34,8 @@ def login():
     except ValueError:
         return jsonify({"error": "Invalid credentials"}), 401
 
-    return jsonify(vars(tokens))
+    resp = make_response(jsonify({"status": "ok"}))
+    return set_token_cookies(resp, tokens)
 
 @app.post("/auth/signup")
 def signup():
@@ -51,15 +50,26 @@ def signup():
 
     try:
         kc.create_user(username, email, password)
-        return jsonify({"status": "ok"}), 201
+        #login after signup
+        tokens = kc.exchange_password_for_tokens(LoginRequest(username=username, password=password))
+        resp = make_response(jsonify({"status": "ok"}))
+        return set_token_cookies(resp, tokens)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+@app.post("/auth/logout")
+def logout():
+    resp = make_response(jsonify({"status": "logged_out"}))
+    resp.delete_cookie("access_token")
+    resp.delete_cookie("refresh_token")
+    return resp
 
 @app.get("/auth/me")
 def me():
-    auth = request.headers.get("Authorization")
-    token = extract_bearer_token(auth)
+    token = request.cookies.get("access_token")
+    if not token:
+        return jsonify({"error": "Not authenticated"}), 401
+
     claims = decode_access_token(token)
 
     return jsonify({
@@ -77,6 +87,7 @@ def check():
     claims = decode_access_token(token)
 
     return jsonify({"message": f"Hello {claims.get('preferred_username', claims.get('sub'))}"})
+
 
 
 if __name__ == "__main__":

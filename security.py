@@ -59,3 +59,27 @@ def decode_access_token(token: str):
         abort(401, "Token expired")
     except jwt.InvalidTokenError:
         abort(401, "Invalid token")
+
+def set_token_cookies(resp, tokens):
+    # Access Token
+    resp.set_cookie(
+        "access_token",
+        tokens.access_token,
+        httponly=True,
+        secure=False,   # true in production
+        samesite="Lax",
+        max_age=tokens.expires_in
+    )
+
+    # Refresh Token (optional)
+    if tokens.refresh_token:
+        resp.set_cookie(
+            "refresh_token",
+            tokens.refresh_token,
+            httponly=True,
+            secure=False,  # true in production
+            samesite="Lax",
+            max_age=3600 * 24  # 1 day (or Keycloak default)
+        )
+
+    return resp
