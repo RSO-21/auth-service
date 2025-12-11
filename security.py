@@ -1,5 +1,5 @@
 import jwt
-from jwt.algorithms import RSAAlgorithm
+from jwt.algorithms import get_default_algorithms
 import requests
 from flask import abort
 from config import SETTINGS
@@ -44,7 +44,11 @@ def decode_access_token(token: str):
     if not key_data:
         abort(401, f"No matching JWKS key for kid={kid}")
 
-    public_key = RSAAlgorithm.from_jwk(key_data)
+    algorithm = get_default_algorithms().get("RS256")
+    if not algorithm:
+        abort(500, "RS256 algorithm unavailable")
+
+    public_key = algorithm.from_jwk(key_data)
 
     try:
         decoded = jwt.decode(
