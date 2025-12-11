@@ -4,12 +4,17 @@ from keycloak_client import KeycloakClient
 from models import LoginRequest
 from security import extract_bearer_token, decode_access_token, set_token_cookies
 from flask_cors import CORS
+from prometheus_flask_exporter import PrometheusMetrics
+from prometheus_client import make_wsgi_app
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
 app = Flask(__name__)
 kc = KeycloakClient()
 
-
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+metrics = PrometheusMetrics(app, path=None)
+app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {"/metrics": make_wsgi_app()})
+metrics.info("app_info", "Auth service info", version="1.0.0")
 
 @app.route("/health")
 def health():
