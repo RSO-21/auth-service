@@ -59,11 +59,13 @@ class KeycloakClient:
         r.raise_for_status()
         return r.json()["access_token"]
     
-    def create_user(self, username: str, email: str, password: str):
+    def create_user(self, username: str, email: str, password: str) -> str:
         token = self.get_admin_token()
 
-        headers = {"Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"}
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
 
         payload = {
             "username": username,
@@ -85,4 +87,10 @@ class KeycloakClient:
         if r.status_code not in (200, 201):
             raise Exception(f"Error creating user: {r.text}")
 
-        return True
+        # ✅ THIS IS THE KEY PART
+        location = r.headers.get("Location")
+        if not location:
+            raise Exception("Keycloak did not return Location header")
+
+        user_id = location.rstrip("/").split("/")[-1]
+        return user_id

@@ -8,6 +8,11 @@ from flask_cors import CORS
 from prometheus_flask_exporter import PrometheusMetrics
 from prometheus_client import make_wsgi_app
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
+from rabbitmq_publisher import publish_user_created
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -23,7 +28,7 @@ ns = api.namespace("auth", description="Auth operations")
 
 kc = KeycloakClient()
 
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+CORS(app, resources={r"/*": {"origins": ["http://localhost:4200"]}}, supports_credentials=True)
 metrics = PrometheusMetrics(app, path=None)
 app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {"/metrics": make_wsgi_app()})
 metrics.info("app_info", "Auth service info", version="1.0.0")
@@ -59,16 +64,26 @@ class Signup(Resource):
         username = data.get("username")
         email = data.get("email")
         password = data.get("password")
+        logger.info("[SIGNUP] Creating user in Keycloak: %s", username)
 
         if not username or not email or not password:
             return {"error": "Missing fields"}, 400
 
         try:
-            kc.create_user(username, email, password)
+            user_id = kc.create_user(username, email, password)
+            logger.info("[SIGNUP] User created in Keycloak with ID: %s", user_id)
+            
+            publish_user_created(
+                user_id=user_id,
+                username=username,
+                email=email
+            )
+            
             tokens = kc.exchange_password_for_tokens(LoginRequest(username=username, password=password))
             resp = make_response(jsonify({"status": "ok"}))
             return set_token_cookies(resp, tokens)
         except Exception as e:
+            logger.error("[SIGNUP] Error during signup: %s", str(e))
             return {"error": str(e)}, 400
 
 
