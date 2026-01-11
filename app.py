@@ -24,7 +24,7 @@ api = Api(
     doc="/docs"  # 👈 Swagger UI path
 )
 
-ns = api.namespace("auth", description="Auth operations")
+ns = api.namespace("", description="Auth operations")
 
 kc = KeycloakClient()
 
