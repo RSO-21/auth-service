@@ -71,7 +71,8 @@ class KeycloakClient:
             "username": username,
             "email": email,
             "enabled": True,
-            "emailVerified": False,
+            "emailVerified": True,
+            "requiredActions": [],
             "credentials": [
                 {
                     "type": "password",
