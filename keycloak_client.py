@@ -15,7 +15,7 @@ class KeycloakClient:
 
         r = requests.post(SETTINGS.token_url, data=payload)
         if r.status_code != 200:
-            raise ValueError("Invalid credentials")
+            raise ValueError(f"Token exchange failed ({r.status_code}): {r.text}")
 
         body = r.json()
 
