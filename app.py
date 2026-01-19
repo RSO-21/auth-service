@@ -10,6 +10,7 @@ from prometheus_client import make_wsgi_app
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from rabbitmq_publisher import publish_user_created
 import logging
+import requests
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -72,6 +73,12 @@ class Signup(Resource):
         try:
             user_id = kc.create_user(username, email, password)
             logger.info("[SIGNUP] User created in Keycloak with ID: %s", user_id)
+
+            requests.post(
+                "http://user-service:8000/",
+                json={"id": user_id, "username": username, "email": email, "cart": []},
+                timeout=5,
+            )
             
             publish_user_created(
                 user_id=user_id,
