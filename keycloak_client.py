@@ -70,6 +70,8 @@ class KeycloakClient:
         payload = {
             "username": username,
             "email": email,
+            "firstName": username,
+            "lastName": username,
             "enabled": True,
             "emailVerified": True,
             "requiredActions": [],
